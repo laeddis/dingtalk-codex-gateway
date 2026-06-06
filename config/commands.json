@@ -12,6 +12,9 @@
     "复杂分析 <自然语言任务>"
   ],
   "implemented": [
-    "订单日报 今天/昨天 store=shopline|shoplazza|all"
+    "订单日报 今天/昨天 store=shopline|shoplazza|all",
+    "广告日报 今天/昨天",
+    "检查漏单 今天/昨天",
+    "广告状态"
   ]
 }

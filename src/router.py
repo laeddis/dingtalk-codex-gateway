@@ -6,7 +6,7 @@ from .config import load_workspaces
 from .models import ExecutionResult, Route
 from .security import REJECTION_MARKDOWN, find_dangerous_pattern, normalize_text
 from .executors.codex_executor import run_complex_analysis
-from .executors.script_executor import not_implemented, run_order_daily
+from .executors.script_executor import not_implemented, run_ad_daily, run_ad_status, run_missing_order_reconciliation, run_order_daily
 
 STORE_RE = re.compile(r"store\s*=\s*(shopline|shoplazza|all)", re.IGNORECASE)
 
@@ -24,11 +24,11 @@ def route_text(text: str) -> Route:
     if normalized.startswith("订单日报"):
         return Route(f"order_daily_{day_word}_{store}", "order_daily", {"day_word": day_word, "store": store})
     if normalized.startswith("广告日报"):
-        return Route(f"ad_daily_{day_word}", "not_implemented", {})
+        return Route(f"ad_daily_{day_word}", "ad_daily", {"day_word": day_word})
     if normalized.startswith("检查漏单"):
-        return Route(f"reconcile_missing_orders_{day_word}", "not_implemented", {})
+        return Route(f"reconcile_missing_orders_{day_word}", "missing_order_reconciliation", {"day_word": day_word})
     if normalized.startswith("广告状态"):
-        return Route("ad_status", "not_implemented", {})
+        return Route("ad_status", "ad_status", {})
     if normalized.startswith("复杂分析"):
         task = normalized.removeprefix("复杂分析").strip()
         return Route("complex_analysis", "codex", {"task": task})
@@ -46,6 +46,12 @@ def execute_route(workspace_name: str, text: str) -> ExecutionResult:
         return ExecutionResult(False, route.command, REJECTION_MARKDOWN, data=route.args)
     if route.executor == "order_daily":
         return run_order_daily(workspace, **route.args)
+    if route.executor == "ad_daily":
+        return run_ad_daily(workspace, **route.args)
+    if route.executor == "missing_order_reconciliation":
+        return run_missing_order_reconciliation(workspace, **route.args)
+    if route.executor == "ad_status":
+        return run_ad_status(workspace)
     if route.executor == "codex":
         task = route.args.get("task") or ""
         if not task:
