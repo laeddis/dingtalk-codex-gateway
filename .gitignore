@@ -3,3 +3,7 @@ __pycache__/
 .pytest_cache/
 logs/*.jsonl
 reports/*.md
+.env
+*.env
+
+*.egg-info/

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dingtalk-codex-gateway"
+version = "0.2.0"
+description = "Read-only DingTalk to Codex operations gateway for CutiClub workflows"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Proprietary"}
+authors = [{name = "CutiClub Ops"}]
+dependencies = []
+
+[project.scripts]
+dingtalk-codex-gateway = "src.server:main"
+
+[tool.setuptools.packages.find]
+include = ["src*"]

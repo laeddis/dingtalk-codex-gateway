@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import argparse
 import json
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 
 from .audit import append_audit
-from .config import public_config_snapshot
+from .config import AppSettings, load_app_settings, public_config_snapshot, validate_server_settings
 from .router import execute_route, route_text
 
 HOST = "127.0.0.1"
@@ -18,13 +20,17 @@ class GatewayHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path == "/health":
-            self.write_json({"ok": True, **public_config_snapshot()})
+            settings = self.get_settings()
+            self.write_json({"ok": True, "environment": settings.environment, **public_config_snapshot()})
             return
         self.write_json({"ok": False, "error": "not_found"}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
         if self.path != "/local/message":
             self.write_json({"ok": False, "error": "not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        if not self.is_authorized():
+            self.write_json({"ok": False, "error": "unauthorized"}, HTTPStatus.UNAUTHORIZED)
             return
         try:
             payload = self.read_json()
@@ -60,6 +66,17 @@ class GatewayHandler(BaseHTTPRequestHandler):
             append_audit({"source": "local_test", "status": "error", "error": str(exc)})
             self.write_json({"ok": False, "error": type(exc).__name__, "message": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
+    def get_settings(self) -> AppSettings:
+        return getattr(self.server, "settings", load_app_settings())
+
+    def is_authorized(self) -> bool:
+        settings = self.get_settings()
+        if not settings.api_token and not settings.require_auth:
+            return True
+        auth_header = self.headers.get("Authorization", "")
+        prefix = "Bearer "
+        return auth_header.startswith(prefix) and auth_header[len(prefix) :] == settings.api_token
+
     def read_json(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length") or "0")
         raw = self.rfile.read(length).decode("utf-8")
@@ -81,9 +98,26 @@ class GatewayHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    server = ThreadingHTTPServer((HOST, PORT), GatewayHandler)
-    print(f"DingTalk Codex Gateway listening on http://{HOST}:{PORT}")
+    args = parse_args()
+    settings = load_app_settings(Path(args.env_file) if args.env_file else None)
+    if args.host:
+        settings = AppSettings(args.host, settings.port, settings.api_token, settings.require_auth, settings.environment, settings.workspaces_config)
+    if args.port:
+        settings = AppSettings(settings.host, args.port, settings.api_token, settings.require_auth, settings.environment, settings.workspaces_config)
+    validate_server_settings(settings)
+
+    server = ThreadingHTTPServer((settings.host, settings.port), GatewayHandler)
+    server.settings = settings  # type: ignore[attr-defined]
+    print(f"DingTalk Codex Gateway listening on http://{settings.host}:{settings.port}")
     server.serve_forever()
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the DingTalk Codex Gateway HTTP service.")
+    parser.add_argument("--host", default=None, help=f"Bind host. Defaults to env DINGTALK_GATEWAY_HOST or {HOST}.")
+    parser.add_argument("--port", type=int, default=None, help=f"Bind port. Defaults to env DINGTALK_GATEWAY_PORT or {PORT}.")
+    parser.add_argument("--env-file", default=None, help="Optional dotenv file to load before reading settings.")
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
