@@ -17,3 +17,11 @@ def extract_text_from_callback(payload: dict[str, Any]) -> str:
     if isinstance(text, str):
         return text.strip()
     return ""
+
+
+def extract_sender_from_callback(payload: dict[str, Any]) -> str:
+    for key in ("senderStaffId", "senderId", "senderNick", "conversationId", "sender"):
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return "dingtalk-user"

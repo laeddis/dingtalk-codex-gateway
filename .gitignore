@@ -8,3 +8,5 @@ reports/*.md
 
 *.egg-info/
 workspace/
+data/
+deploy/docker-compose.env

@@ -11,7 +11,7 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY config ./config
 COPY src ./src
-RUN pip install --no-cache-dir . && mkdir -p logs reports
+RUN pip install --no-cache-dir . && mkdir -p logs reports data
 
 EXPOSE 8787
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=5).read()"

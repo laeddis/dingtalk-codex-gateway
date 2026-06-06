@@ -12,6 +12,11 @@ This gateway is safe-by-default for server use: it requires bearer-token auth fo
 | `DINGTALK_GATEWAY_REQUIRE_AUTH` | `0` | Set `1` in production. Docker sets this automatically. |
 | `DINGTALK_GATEWAY_API_TOKEN` | empty | Bearer token for `POST /local/message`. |
 | `DINGTALK_GATEWAY_DEFAULT_WORKSPACE` | `default` | Workspace used when a request omits `workspace`. Compose sets `default`. |
+| `DINGTALK_GATEWAY_AGENT_TOKEN` | empty | Bearer token used by the personal PC agent. |
+| `DINGTALK_GATEWAY_JOB_DB_PATH` | `data/jobs.sqlite3` | SQLite job queue path. |
+| `DINGTALK_CALLBACK_TOKEN` | empty | Optional shared token for `/dingtalk/callback`. Use as `?token=...`. |
+| `DINGTALK_OUTGOING_WEBHOOK` | empty | Optional DingTalk robot webhook for progress/result replies. |
+| `DINGTALK_OUTGOING_SECRET` | empty | Optional DingTalk robot signing secret. |
 | `DINGTALK_GATEWAY_WORKSPACES_CONFIG` | `config/workspaces.json` | Workspace config path. |
 | `CODEX_CONFIG` | `/root/.codex/config.toml` | Existing MCP credential source. |
 
@@ -38,7 +43,9 @@ editor deploy/docker-compose.env
 # DINGTALK_GATEWAY_API_TOKEN=<long-random-token>
 # DINGTALK_GATEWAY_DOMAIN=<your-domain>
 # CADDY_ACME_EMAIL=<your-email>
-# WORKSPACE_HOST_PATH=<absolute-path-to-your-workspace>
+# DINGTALK_GATEWAY_AGENT_TOKEN=<different-long-random-token>
+# DINGTALK_CALLBACK_TOKEN=<callback-token-used-in-dingtalk-url>
+# WORKSPACE_HOST_PATH=<absolute-path-to-your-server-workspace>
 
 docker compose --env-file deploy/docker-compose.env -f compose.yaml -f compose.https.yaml build
 docker compose --env-file deploy/docker-compose.env -f compose.yaml -f compose.https.yaml up -d
@@ -80,11 +87,62 @@ Compose mounts these host paths by default:
 | `./config` | `/app/config` | Workspace config. |
 | `./logs` | `/app/logs` | Audit JSONL logs. |
 | `./reports` | `/app/reports` | Generated Markdown reports. |
+| `./data` | `/app/data` | SQLite job queue. |
 | `${WORKSPACE_HOST_PATH}` | `/workspace` | External business workspace. |
 | `${CODEX_CONFIG_DIR}` | `/root/.codex` | Existing MCP credentials. |
 | `${META_ADS_MCP_CONFIG_DIR}` | `/root/.config/meta-ads-mcp` | Meta token fallback. |
 
 The Compose deployment uses `config/workspaces.compose.json`, where workspace `default` points to `/workspace`. Set `WORKSPACE_HOST_PATH` to the host directory you want mounted there.
+
+
+## DingTalk -> Server -> Personal PC Codex Flow
+
+Use this mode when Codex and the working repository live on a personal PC, while DingTalk can only call a public HTTPS server.
+
+1. Configure the public server with Docker Compose HTTPS as shown above.
+2. Set `DINGTALK_GATEWAY_AGENT_TOKEN` in `deploy/docker-compose.env`. This token is only for the PC agent.
+3. Set `DINGTALK_CALLBACK_TOKEN` in `deploy/docker-compose.env`. Configure the DingTalk callback URL as:
+
+```text
+https://<your-domain>/dingtalk/callback?token=<DINGTALK_CALLBACK_TOKEN>
+```
+
+4. If you want progress/results pushed back to DingTalk, configure an outgoing robot webhook:
+
+```env
+DINGTALK_OUTGOING_WEBHOOK=https://oapi.dingtalk.com/robot/send?access_token=...
+DINGTALK_OUTGOING_SECRET=...
+```
+
+5. On the personal PC, install and run the agent:
+
+```bash
+cd /path/to/dingtalk-codex-gateway
+python3 -m pip install .
+cp deploy/pc-agent.env.example .env.agent
+editor .env.agent
+set -a
+. .env.agent
+set +a
+dingtalk-codex-agent
+```
+
+Required PC agent settings:
+
+| Variable | Purpose |
+| --- | --- |
+| `GATEWAY_URL` | Public gateway URL, for example `https://gateway.example.com`. |
+| `AGENT_TOKEN` | Must match server `DINGTALK_GATEWAY_AGENT_TOKEN`. |
+| `AGENT_ID` | Stable name for this PC, for example `office-macbook`. |
+| `AGENT_WORKSPACE_PATH` | Local path where `codex exec` should run. |
+
+DingTalk command format for the first MVP:
+
+```text
+复杂分析 <natural language task>
+```
+
+The server queues the job, the PC agent polls `/agent/poll`, executes `codex exec --sandbox read-only` locally, uploads progress to `/agent/jobs/{job_id}/events`, and completes through `/agent/jobs/{job_id}/complete`.
 
 ## Localhost-Only Docker Compose
 

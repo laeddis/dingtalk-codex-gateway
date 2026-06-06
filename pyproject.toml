@@ -14,6 +14,7 @@ dependencies = []
 
 [project.scripts]
 dingtalk-codex-gateway = "src.server:main"
+dingtalk-codex-agent = "src.pc_agent:cli_main"
 
 [tool.setuptools.packages.find]
 include = ["src*"]

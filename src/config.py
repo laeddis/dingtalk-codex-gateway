@@ -21,6 +21,11 @@ class AppSettings:
     environment: str
     workspaces_config: Path
     default_workspace: str
+    agent_token: str = ""
+    dingtalk_callback_token: str = ""
+    dingtalk_outgoing_webhook: str = ""
+    dingtalk_outgoing_secret: str = ""
+    job_db_path: Path = PROJECT_ROOT / "data" / "jobs.sqlite3"
 
 
 def load_dotenv(path: Path) -> None:
@@ -49,7 +54,25 @@ def load_app_settings(env_file: Path | None = None) -> AppSettings:
     environment = os.environ.get("DINGTALK_GATEWAY_ENV", "development")
     workspaces_config = Path(os.environ.get("DINGTALK_GATEWAY_WORKSPACES_CONFIG", str(DEFAULT_WORKSPACES_CONFIG)))
     default_workspace = os.environ.get("DINGTALK_GATEWAY_DEFAULT_WORKSPACE", "default")
-    return AppSettings(host, port, api_token, require_auth, environment, workspaces_config, default_workspace)
+    agent_token = os.environ.get("DINGTALK_GATEWAY_AGENT_TOKEN", "")
+    dingtalk_callback_token = os.environ.get("DINGTALK_CALLBACK_TOKEN", "")
+    dingtalk_outgoing_webhook = os.environ.get("DINGTALK_OUTGOING_WEBHOOK", "")
+    dingtalk_outgoing_secret = os.environ.get("DINGTALK_OUTGOING_SECRET", "")
+    job_db_path = Path(os.environ.get("DINGTALK_GATEWAY_JOB_DB_PATH", str(PROJECT_ROOT / "data" / "jobs.sqlite3")))
+    return AppSettings(
+        host,
+        port,
+        api_token,
+        require_auth,
+        environment,
+        workspaces_config,
+        default_workspace,
+        agent_token,
+        dingtalk_callback_token,
+        dingtalk_outgoing_webhook,
+        dingtalk_outgoing_secret,
+        job_db_path,
+    )
 
 
 def parse_port(value: str) -> int:

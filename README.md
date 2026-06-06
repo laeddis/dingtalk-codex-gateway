@@ -48,6 +48,36 @@ dingtalk-codex-gateway --env-file /etc/dingtalk-codex-gateway.env
 
 完整服务器部署见 `docs/deployment.md`。公网 HTTPS 推荐使用 Docker Compose + Caddy：`cp deploy/docker-compose.env.example deploy/docker-compose.env`，填好域名和 token 后执行 `docker compose --env-file deploy/docker-compose.env -f compose.yaml -f compose.https.yaml up -d`。
 
+
+## 个人 PC 执行 Codex
+
+公网服务器可以只负责接收钉钉消息、排队任务和回传结果；真正的 `codex exec` 在个人 PC 上由 agent 执行。PC 不需要公网 IP，也不需要开放端口。
+
+链路：
+
+```text
+钉钉 -> 公网 HTTPS gateway -> job queue -> PC agent 主动拉任务 -> 本机 codex exec -> gateway -> 钉钉
+```
+
+PC agent 启动示例：
+
+```bash
+python3 -m pip install .
+export GATEWAY_URL="https://你的域名"
+export AGENT_TOKEN="deploy/docker-compose.env 里的 DINGTALK_GATEWAY_AGENT_TOKEN"
+export AGENT_ID="my-personal-pc"
+export AGENT_WORKSPACE_PATH="/你的本地项目路径"
+dingtalk-codex-agent
+```
+
+钉钉里发送：
+
+```text
+复杂分析 帮我总结昨天广告和订单表现
+```
+
+服务器会创建 job，PC agent 拉到后在个人 PC 上执行 Codex，并把进度和结果回传给钉钉。
+
 ## 本地测试
 
 ```bash

@@ -12,16 +12,22 @@ services:
       DINGTALK_GATEWAY_PORT: 8787
       DINGTALK_GATEWAY_REQUIRE_AUTH: "1"
       DINGTALK_GATEWAY_API_TOKEN: ${DINGTALK_GATEWAY_API_TOKEN:?Set DINGTALK_GATEWAY_API_TOKEN in deploy/docker-compose.env}
+      DINGTALK_GATEWAY_AGENT_TOKEN: ${DINGTALK_GATEWAY_AGENT_TOKEN:?Set DINGTALK_GATEWAY_AGENT_TOKEN in deploy/docker-compose.env}
       DINGTALK_GATEWAY_DEFAULT_WORKSPACE: ${DINGTALK_GATEWAY_DEFAULT_WORKSPACE:-default}
+      DINGTALK_GATEWAY_JOB_DB_PATH: /app/data/jobs.sqlite3
       DINGTALK_GATEWAY_WORKSPACES_CONFIG: /app/config/workspaces.compose.json
       CODEX_CONFIG: /root/.codex/config.toml
       META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      DINGTALK_CALLBACK_TOKEN: ${DINGTALK_CALLBACK_TOKEN:-}
+      DINGTALK_OUTGOING_WEBHOOK: ${DINGTALK_OUTGOING_WEBHOOK:-}
+      DINGTALK_OUTGOING_SECRET: ${DINGTALK_OUTGOING_SECRET:-}
     ports:
       - "${DINGTALK_GATEWAY_BIND_IP:-127.0.0.1}:${DINGTALK_GATEWAY_PUBLISHED_PORT:-8787}:8787"
     volumes:
       - ./config:/app/config:ro
       - ./logs:/app/logs
       - ./reports:/app/reports
+      - ./data:/app/data
       - ${WORKSPACE_HOST_PATH:-./workspace}:/workspace:rw
       - ${CODEX_CONFIG_DIR:-/root/.codex}:/root/.codex:ro
       - ${META_ADS_MCP_CONFIG_DIR:-/root/.config/meta-ads-mcp}:/root/.config/meta-ads-mcp:ro
