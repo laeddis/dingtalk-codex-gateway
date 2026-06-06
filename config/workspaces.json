@@ -1,0 +1,14 @@
+{
+  "cuticlub": {
+    "path": "/root/cuticlubads",
+    "timezone": "America/New_York",
+    "allowed_write_paths": [
+      "/root/cuticlubads/ad_tests",
+      "/root/cuticlubads/MEETING_NOTES.md",
+      "/root/cuticlubads/TASKS.md",
+      "/root/cuticlubads/WEEKLY_LOG.md",
+      "/root/dingtalk-codex-gateway/reports"
+    ],
+    "stores": ["shopline", "shoplazza"]
+  }
+}

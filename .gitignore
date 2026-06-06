@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+logs/*.jsonl
+reports/*.md

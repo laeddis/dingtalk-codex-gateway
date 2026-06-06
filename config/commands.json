@@ -1,0 +1,17 @@
+{
+  "allowed_mvp_commands": [
+    "订单日报 今天",
+    "订单日报 昨天",
+    "订单日报 今天 store=shopline",
+    "订单日报 今天 store=shoplazza",
+    "订单日报 今天 store=all",
+    "广告日报 今天",
+    "广告日报 昨天",
+    "检查漏单 今天",
+    "广告状态",
+    "复杂分析 <自然语言任务>"
+  ],
+  "implemented": [
+    "订单日报 今天/昨天 store=shopline|shoplazza|all"
+  ]
+}
