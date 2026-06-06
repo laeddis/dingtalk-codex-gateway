@@ -124,7 +124,7 @@ editor .env.agent
 set -a
 . .env.agent
 set +a
-dingtalk-codex-agent
+dingtalk-codex-agent --env-file .env.agent
 ```
 
 Required PC agent settings:
@@ -143,6 +143,8 @@ DingTalk command format for the first MVP:
 ```
 
 The server queues the job, the PC agent polls `/agent/poll`, executes `codex exec --sandbox read-only` locally, uploads progress to `/agent/jobs/{job_id}/events`, and completes through `/agent/jobs/{job_id}/complete`.
+
+For boot auto-start on the personal PC, see `deploy/pc-agent/README.md`. It includes Linux user systemd and macOS launchd templates.
 
 ## Localhost-Only Docker Compose
 

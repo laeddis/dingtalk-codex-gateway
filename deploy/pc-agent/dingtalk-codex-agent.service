@@ -1,0 +1,15 @@
+[Unit]
+Description=DingTalk Codex Personal PC Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/dingtalk-codex-gateway
+ExecStart=%h/.local/bin/dingtalk-codex-agent --env-file %h/.config/dingtalk-codex-agent.env
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

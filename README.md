@@ -67,7 +67,7 @@ export GATEWAY_URL="https://你的域名"
 export AGENT_TOKEN="deploy/docker-compose.env 里的 DINGTALK_GATEWAY_AGENT_TOKEN"
 export AGENT_ID="my-personal-pc"
 export AGENT_WORKSPACE_PATH="/你的本地项目路径"
-dingtalk-codex-agent
+dingtalk-codex-agent --env-file .env.agent
 ```
 
 钉钉里发送：
@@ -77,6 +77,8 @@ dingtalk-codex-agent
 ```
 
 服务器会创建 job，PC agent 拉到后在个人 PC 上执行 Codex，并把进度和结果回传给钉钉。
+
+开机自启动见 `deploy/pc-agent/README.md`，包含 Linux user systemd 和 macOS launchd 模板。
 
 ## 本地测试
 

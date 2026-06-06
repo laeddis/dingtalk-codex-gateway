@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import subprocess
@@ -9,6 +10,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from .config import load_dotenv
 from .executors.codex_executor import SAFETY_PREAMBLE
 
 
@@ -49,7 +51,9 @@ class GatewayClient:
         self.post(f"/agent/jobs/{job_id}/complete", {"ok": ok, "markdown": markdown, "returncode": returncode, "error": error})
 
 
-def main() -> None:
+def main(env_file: str | None = None) -> None:
+    if env_file:
+        load_dotenv(Path(env_file).expanduser())
     base_url = required_env("GATEWAY_URL")
     token = required_env("AGENT_TOKEN")
     agent_id = os.environ.get("AGENT_ID", "personal-pc")
@@ -74,10 +78,17 @@ def main() -> None:
 
 
 def cli_main() -> None:
+    args = parse_args()
     try:
-        main()
+        main(args.env_file)
     except AgentError as exc:
         raise SystemExit(str(exc)) from exc
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the personal PC Codex polling agent.")
+    parser.add_argument("--env-file", default=None, help="Optional dotenv file containing GATEWAY_URL, AGENT_TOKEN, and agent settings.")
+    return parser.parse_args()
 
 
 def run_job(client: GatewayClient, agent_id: str, workspace_path: Path, job: dict[str, Any], timeout_seconds: int) -> None:
