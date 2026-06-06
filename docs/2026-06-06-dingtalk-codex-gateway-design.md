@@ -6,7 +6,7 @@ Project directory: `/root/dingtalk-codex-gateway`
 
 ## Goal
 
-Build a local-first DingTalk single-chat bot gateway that can receive operator commands, route them through a safe whitelist, run CutiClub analysis tasks, and return Markdown results. The gateway must stay separate from `/root/cuticlubads` so it can later support multiple workspaces.
+Build a local-first DingTalk single-chat bot gateway that can receive operator commands, route them through a safe whitelist, run CutiClub analysis tasks across Shopline, Shoplazza, and Meta Ads, and return Markdown results. The gateway must stay separate from `/root/cuticlubads` so it can later support multiple workspaces.
 
 ## Scope
 
@@ -22,13 +22,14 @@ Build a local-first DingTalk single-chat bot gateway that can receive operator c
 - Local command audit log.
 - Markdown response output.
 - Workspace-based routing, starting with CutiClub.
+- Store-source routing for both Shopline and Shoplazza.
 
 ### Out of scope for MVP
 
 - Public HTTPS callback deployment.
 - Real DingTalk callback signature verification.
 - Starting, pausing, creating, or editing Meta ads.
-- Editing Shopline products, discounts, theme, or navigation.
+- Editing Shopline or Shoplazza products, discounts, theme, navigation, or orders.
 - Arbitrary shell execution from DingTalk messages.
 - Multi-user admin UI.
 
@@ -57,7 +58,7 @@ Build a local-first DingTalk single-chat bot gateway that can receive operator c
 
 ## Workspaces
 
-The gateway treats business projects as external workspaces. CutiClub is the first workspace.
+The gateway treats business projects as external workspaces. CutiClub is the first workspace. A workspace can have multiple store data sources.
 
 ```yaml
 workspaces:
@@ -72,6 +73,41 @@ workspaces:
 
 The gateway code lives outside the CutiClub project. It may read from `/root/cuticlubads` and may write only to explicitly allowed reporting/memory paths.
 
+
+## Store Sources
+
+CutiClub currently needs two store integrations:
+
+```yaml
+stores:
+  shopline:
+    type: shopline
+    mode: read_only_by_default
+    allowed_actions:
+      - list_orders
+      - count_orders
+      - get_order
+      - list_products
+      - get_product
+  shoplazza:
+    type: shoplazza
+    mode: read_only_by_default
+    allowed_actions:
+      - list_orders
+      - count_orders
+      - get_order
+      - list_products
+      - get_product
+```
+
+MVP store behavior:
+
+- Order and revenue reports should support `store=shopline`, `store=shoplazza`, and `store=all`.
+- `store=all` aggregates both stores and keeps per-store subtotals.
+- Revenue should use the store-native order total that includes shipping when available.
+- Reports must label the data source clearly so Shopline and Shoplazza orders are not mixed without attribution.
+- Store write operations remain blocked in DingTalk-triggered MVP commands.
+
 ## Command Model
 
 ### Allowed MVP commands
@@ -80,6 +116,9 @@ The gateway code lives outside the CutiClub project. It may read from `/root/cut
 广告日报 今天
 广告日报 昨天
 订单日报 今天
+订单日报 今天 store=shopline
+订单日报 今天 store=shoplazza
+订单日报 今天 store=all
 检查漏单 今天
 广告状态
 复杂分析 <自然语言任务>
@@ -88,8 +127,8 @@ The gateway code lives outside the CutiClub project. It may read from `/root/cut
 ### Command routing
 
 - `广告日报` routes to a fixed reporting workflow when available.
-- `订单日报` routes to a fixed Shopline order summary workflow.
-- `检查漏单` routes to the existing CutiClub reconciliation workflow.
+- `订单日报` routes to a fixed store order summary workflow and supports Shopline, Shoplazza, or both stores.
+- `检查漏单` routes to the existing CutiClub reconciliation workflow. First version may use Shopline-only reconciliation if Shoplazza ad attribution fields are not yet mapped; the report must say which stores are included.
 - `广告状态` routes to a read-only Meta status workflow.
 - `复杂分析` routes to `codex exec` with a strict safety prompt.
 
@@ -116,13 +155,13 @@ Constraints:
 - Working directory must be the configured workspace path.
 - Prompt must include a mandatory safety preamble.
 - Must not perform external write operations through MCP.
-- Must not modify Meta ads, Shopline products, discounts, or theme.
+- Must not modify Meta ads, Shopline or Shoplazza products, discounts, theme, navigation, or orders.
 - May write local reports or project memory only inside allowed paths.
 
 Mandatory preamble:
 
 ```text
-You are running from DingTalk Codex Gateway. This task is read-only for external systems. Do not create, pause, activate, edit, or delete ads. Do not edit Shopline products, discounts, theme, navigation, or orders. You may read data and write local analysis reports only to allowed project paths.
+You are running from DingTalk Codex Gateway. This task is read-only for external systems. Do not create, pause, activate, edit, or delete ads. Do not edit Shopline or Shoplazza products, discounts, theme, navigation, or orders. You may read data and write local analysis reports only to allowed project paths.
 ```
 
 ## Security Rules
@@ -171,7 +210,7 @@ Every request writes one JSONL record:
 }
 ```
 
-Logs must not include API tokens, DingTalk secrets, Meta tokens, Shopline tokens, order PII, or full customer details.
+Logs must not include API tokens, DingTalk secrets, Meta tokens, Shopline tokens, Shoplazza tokens, order PII, or full customer details.
 
 ## Local API Shape
 
@@ -196,7 +235,7 @@ Content-Type: application/json
 {
   "workspace": "cuticlub",
   "sender": "local-user",
-  "text": "广告日报 今天"
+  "text": "订单日报 今天 store=all"
 }
 ```
 
@@ -205,7 +244,7 @@ Response:
 ```json
 {
   "ok": true,
-  "command": "ad_daily_today",
+  "command": "order_daily_today_all_stores",
   "markdown": "...",
   "report_path": "reports/...md"
 }
@@ -236,15 +275,26 @@ This phase requires DingTalk app credentials and a public HTTPS callback URL or 
 ### Local integration checks
 
 - `GET /health` returns ok.
-- `POST /local/message` with `广告日报 今天` returns Markdown.
+- `POST /local/message` with `订单日报 今天 store=all` returns Markdown with Shopline and Shoplazza subtotals.
 - `POST /local/message` with `暂停广告` is rejected.
 - Audit log receives one line per command.
 
 ### CutiClub-specific checks
 
 - Reconciliation command can call existing scripts in `/root/cuticlubads`.
+- Store reporting can read both Shopline and Shoplazza MCP/API data sources.
 - Generated reports stay outside tokens/PII.
-- No Meta or Shopline write tools are called from DingTalk-triggered tasks.
+- No Meta, Shopline, or Shoplazza write tools are called from DingTalk-triggered tasks.
+
+## Store Attribution Notes
+
+Shopline and Shoplazza may expose different order fields for source, UTM, shipping, discounts, and total revenue. The MVP should normalize only the minimum needed fields for reporting:
+
+```text
+store, order_id, order_name, created_at, financial_status, fulfillment_status, total_price_including_shipping, currency, source_name, landing_site, note_attributes/raw_attribution
+```
+
+If a field is unavailable from one store, the report should show `unknown` rather than guessing.
 
 ## Open Questions Deferred Until Production
 
