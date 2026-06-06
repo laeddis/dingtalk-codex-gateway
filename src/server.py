@@ -34,7 +34,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         try:
             payload = self.read_json()
-            workspace = str(payload.get("workspace") or "cuticlub")
+            workspace = str(payload.get("workspace") or self.get_settings().default_workspace)
             sender = str(payload.get("sender") or "local-user")
             text = str(payload.get("text") or "")
             if not text.strip():
@@ -101,9 +101,9 @@ def main() -> None:
     args = parse_args()
     settings = load_app_settings(Path(args.env_file) if args.env_file else None)
     if args.host:
-        settings = AppSettings(args.host, settings.port, settings.api_token, settings.require_auth, settings.environment, settings.workspaces_config)
+        settings = AppSettings(args.host, settings.port, settings.api_token, settings.require_auth, settings.environment, settings.workspaces_config, settings.default_workspace)
     if args.port:
-        settings = AppSettings(settings.host, args.port, settings.api_token, settings.require_auth, settings.environment, settings.workspaces_config)
+        settings = AppSettings(settings.host, args.port, settings.api_token, settings.require_auth, settings.environment, settings.workspaces_config, settings.default_workspace)
     validate_server_settings(settings)
 
     server = ThreadingHTTPServer((settings.host, settings.port), GatewayHandler)

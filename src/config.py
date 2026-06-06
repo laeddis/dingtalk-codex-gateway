@@ -20,6 +20,7 @@ class AppSettings:
     require_auth: bool
     environment: str
     workspaces_config: Path
+    default_workspace: str
 
 
 def load_dotenv(path: Path) -> None:
@@ -47,7 +48,8 @@ def load_app_settings(env_file: Path | None = None) -> AppSettings:
     require_auth = parse_bool(os.environ.get("DINGTALK_GATEWAY_REQUIRE_AUTH", "0"))
     environment = os.environ.get("DINGTALK_GATEWAY_ENV", "development")
     workspaces_config = Path(os.environ.get("DINGTALK_GATEWAY_WORKSPACES_CONFIG", str(DEFAULT_WORKSPACES_CONFIG)))
-    return AppSettings(host, port, api_token, require_auth, environment, workspaces_config)
+    default_workspace = os.environ.get("DINGTALK_GATEWAY_DEFAULT_WORKSPACE", "default")
+    return AppSettings(host, port, api_token, require_auth, environment, workspaces_config, default_workspace)
 
 
 def parse_port(value: str) -> int:

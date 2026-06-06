@@ -1,0 +1,15 @@
+{
+    email {$CADDY_ACME_EMAIL}
+}
+
+{$DINGTALK_GATEWAY_DOMAIN} {
+    encode gzip
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy no-referrer
+    }
+
+    reverse_proxy gateway:8787
+}

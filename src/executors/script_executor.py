@@ -462,7 +462,7 @@ def build_ad_status_markdown(ad_tests_dir: Path, snapshots: list[dict[str, Any]]
         "",
         f"- 数据目录：`{ad_tests_dir}`",
         f"- 快照数量：{len(snapshots)}",
-        "- 口径：通过只读 Meta Graph API 查询 campaign/ad set/ad 状态。" if is_live else "- 口径：读取 CutiClub 本地 `ad_tests` 里的创建/修复结果文件；不是实时 Meta API 状态。",
+        "- 口径：通过只读 Meta Graph API 查询 campaign/ad set/ad 状态。" if is_live else "- 口径：读取 workspace 本地 `ad_tests` 里的创建/修复结果文件；不是实时 Meta API 状态。",
         "",
     ]
     if not snapshots:

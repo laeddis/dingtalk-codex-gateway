@@ -1,17 +1,17 @@
 # DingTalk Codex Gateway
 
-本项目是独立的本地 DingTalk → Codex/运营脚本网关，不和 `/root/cuticlubads` 混在一起。
+本项目是可部署的 DingTalk → Codex/运营脚本网关，用于把聊天命令安全路由到只读分析、报表生成和受控自动化流程。
 
 ## 当前状态
 
-MVP 已实现可部署的本地 HTTP 接口：
+当前已实现可部署的 HTTP 接口：
 
 - `GET /health`
 - `POST /local/message`
 - 支持 `订单日报 今天/昨天 store=shopline|shoplazza|all`
 - 支持 `广告日报 今天/昨天`：只读查询本地已知 campaign 的 Meta campaign-level 数据
-- 支持 `检查漏单 今天/昨天`：调用 CutiClub 现有 Shopline ↔ Meta Purchase 对账脚本
-- 支持 `广告状态`：优先只读查询 Meta campaign/ad set/ad 实时状态，token 不可用时回退到 CutiClub 本地 `ad_tests` 快照
+- 支持 `检查漏单 今天/昨天`：调用已配置 workspace 中的 Shopline ↔ Meta Purchase 对账脚本
+- 支持 `广告状态`：优先只读查询 Meta campaign/ad set/ad 实时状态，token 不可用时回退到 workspace 本地 `ad_tests` 快照
 - 高风险命令拦截：广告启停/预算/创建、店铺产品/折扣/主题/导航、订单或 purchase 回传
 - 审计日志：`logs/commands.jsonl`
 - 本地报告：`reports/*.md`
@@ -46,7 +46,7 @@ python3 -m pip install .
 dingtalk-codex-gateway --env-file /etc/dingtalk-codex-gateway.env
 ```
 
-完整服务器部署见 `docs/deployment.md`。推荐服务器使用 Docker Compose：`cp deploy/docker-compose.env.example deploy/docker-compose.env && docker compose --env-file deploy/docker-compose.env up -d`。
+完整服务器部署见 `docs/deployment.md`。公网 HTTPS 推荐使用 Docker Compose + Caddy：`cp deploy/docker-compose.env.example deploy/docker-compose.env`，填好域名和 token 后执行 `docker compose --env-file deploy/docker-compose.env -f compose.yaml -f compose.https.yaml up -d`。
 
 ## 本地测试
 
@@ -55,23 +55,23 @@ curl http://127.0.0.1:8787/health
 
 curl -X POST http://127.0.0.1:8787/local/message \
   -H 'Content-Type: application/json' \
-  -d '{"workspace":"cuticlub","sender":"local-user","text":"订单日报 今天 store=all"}'
+  -d '{"workspace":"default","sender":"local-user","text":"订单日报 今天 store=all"}'
 
 curl -X POST http://127.0.0.1:8787/local/message \
   -H 'Content-Type: application/json' \
-  -d '{"workspace":"cuticlub","sender":"local-user","text":"广告日报 昨天"}'
+  -d '{"workspace":"default","sender":"local-user","text":"广告日报 昨天"}'
 
 curl -X POST http://127.0.0.1:8787/local/message \
   -H 'Content-Type: application/json' \
-  -d '{"workspace":"cuticlub","sender":"local-user","text":"暂停广告"}'
+  -d '{"workspace":"default","sender":"local-user","text":"暂停广告"}'
 
 curl -X POST http://127.0.0.1:8787/local/message \
   -H 'Content-Type: application/json' \
-  -d '{"workspace":"cuticlub","sender":"local-user","text":"检查漏单 昨天"}'
+  -d '{"workspace":"default","sender":"local-user","text":"检查漏单 昨天"}'
 
 curl -X POST http://127.0.0.1:8787/local/message \
   -H 'Content-Type: application/json' \
-  -d '{"workspace":"cuticlub","sender":"local-user","text":"广告状态"}'
+  -d '{"workspace":"default","sender":"local-user","text":"广告状态"}'
 ```
 
 如果设置了 `DINGTALK_GATEWAY_API_TOKEN`，`POST /local/message` 需要：

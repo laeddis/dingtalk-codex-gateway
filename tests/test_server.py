@@ -17,7 +17,7 @@ class ServerHandlerTest(unittest.TestCase):
     def make_handler(self, settings=None):
         handler = GatewayHandler.__new__(GatewayHandler)
         handler.client_address = ("127.0.0.1", 12345)
-        handler.server = FakeServer(settings or AppSettings("127.0.0.1", 8787, "", False, "test", Path("config/workspaces.json")))
+        handler.server = FakeServer(settings or AppSettings("127.0.0.1", 8787, "", False, "test", Path("config/workspaces.json"), "default"))
         handler.command = "POST"
         handler.path = "/local/message"
         handler.request_version = "HTTP/1.1"
@@ -29,7 +29,7 @@ class ServerHandlerTest(unittest.TestCase):
 
     def test_local_message_response_shape_and_audit(self):
         handler = self.make_handler()
-        payload = {"workspace": "cuticlub", "sender": "tester", "text": "广告状态"}
+        payload = {"workspace": "default", "sender": "tester", "text": "广告状态"}
         with patch.object(GatewayHandler, "read_json", return_value=payload), \
              patch.object(GatewayHandler, "write_json", side_effect=lambda body, status=HTTPStatus.OK: handler.responses.append((status, body))), \
              patch("src.server.execute_route", return_value=ExecutionResult(True, "ad_status", "# ok")), \
@@ -55,7 +55,7 @@ class ServerHandlerTest(unittest.TestCase):
         self.assertEqual(body["error"], "empty_text")
 
     def test_local_message_requires_bearer_token_when_configured(self):
-        settings = AppSettings("127.0.0.1", 8787, "secret", True, "test", Path("config/workspaces.json"))
+        settings = AppSettings("127.0.0.1", 8787, "secret", True, "test", Path("config/workspaces.json"), "default")
         handler = self.make_handler(settings)
         with patch.object(GatewayHandler, "write_json", side_effect=lambda body, status=HTTPStatus.OK: handler.responses.append((status, body))):
             handler.do_POST()
@@ -65,10 +65,10 @@ class ServerHandlerTest(unittest.TestCase):
         self.assertEqual(body["error"], "unauthorized")
 
     def test_local_message_accepts_valid_bearer_token(self):
-        settings = AppSettings("127.0.0.1", 8787, "secret", True, "test", Path("config/workspaces.json"))
+        settings = AppSettings("127.0.0.1", 8787, "secret", True, "test", Path("config/workspaces.json"), "default")
         handler = self.make_handler(settings)
         handler.headers = {"Authorization": "Bearer secret"}
-        payload = {"workspace": "cuticlub", "sender": "tester", "text": "广告状态"}
+        payload = {"workspace": "default", "sender": "tester", "text": "广告状态"}
         with patch.object(GatewayHandler, "read_json", return_value=payload), \
              patch.object(GatewayHandler, "write_json", side_effect=lambda body, status=HTTPStatus.OK: handler.responses.append((status, body))), \
              patch("src.server.execute_route", return_value=ExecutionResult(True, "ad_status", "# ok")), \

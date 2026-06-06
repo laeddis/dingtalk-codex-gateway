@@ -6,7 +6,7 @@ Project directory: `/root/dingtalk-codex-gateway`
 
 ## Goal
 
-Build a local-first DingTalk single-chat bot gateway that can receive operator commands, route them through a safe whitelist, run CutiClub analysis tasks across Shopline, Shoplazza, and Meta Ads, and return Markdown results. The gateway must stay separate from `/root/cuticlubads` so it can later support multiple workspaces.
+Build a local-first DingTalk single-chat bot gateway that can receive operator commands, route them through a safe whitelist, run workspace analysis tasks across Shopline, Shoplazza, and Meta Ads, and return Markdown results. The gateway must stay separate from `/workspace` so it can later support multiple workspaces.
 
 ## Scope
 
@@ -21,7 +21,7 @@ Build a local-first DingTalk single-chat bot gateway that can receive operator c
   - `codex exec` for complex analysis commands.
 - Local command audit log.
 - Markdown response output.
-- Workspace-based routing, starting with CutiClub.
+- Workspace-based routing, starting with the workspace.
 - Store-source routing for both Shopline and Shoplazza.
 
 ### Out of scope for MVP
@@ -58,25 +58,25 @@ Build a local-first DingTalk single-chat bot gateway that can receive operator c
 
 ## Workspaces
 
-The gateway treats business projects as external workspaces. CutiClub is the first workspace. A workspace can have multiple store data sources.
+The gateway treats business projects as external workspaces. A default workspace is the first workspace. A workspace can have multiple store data sources.
 
 ```yaml
 workspaces:
-  cuticlub:
-    path: /root/cuticlubads
+  default:
+    path: /workspace
     allowed_write_paths:
-      - /root/cuticlubads/ad_tests
-      - /root/cuticlubads/MEETING_NOTES.md
-      - /root/cuticlubads/TASKS.md
-      - /root/cuticlubads/WEEKLY_LOG.md
+      - /workspace/ad_tests
+      - /workspace/MEETING_NOTES.md
+      - /workspace/TASKS.md
+      - /workspace/WEEKLY_LOG.md
 ```
 
-The gateway code lives outside the CutiClub project. It may read from `/root/cuticlubads` and may write only to explicitly allowed reporting/memory paths.
+The gateway code lives outside the external workspace. It may read from `/workspace` and may write only to explicitly allowed reporting/memory paths.
 
 
 ## Store Sources
 
-CutiClub currently needs two store integrations:
+The default workspace currently needs two store integrations:
 
 ```yaml
 stores:
@@ -128,7 +128,7 @@ MVP store behavior:
 
 - `广告日报` routes to a fixed reporting workflow when available.
 - `订单日报` routes to a fixed store order summary workflow and supports Shopline, Shoplazza, or both stores.
-- `检查漏单` routes to the existing CutiClub reconciliation workflow. First version may use Shopline-only reconciliation if Shoplazza ad attribution fields are not yet mapped; the report must say which stores are included.
+- `检查漏单` routes to the existing configured reconciliation workflow. First version may use Shopline-only reconciliation if Shoplazza ad attribution fields are not yet mapped; the report must say which stores are included.
 - `广告状态` routes to a read-only Meta status workflow.
 - `复杂分析` routes to `codex exec` with a strict safety prompt.
 
@@ -201,7 +201,7 @@ Every request writes one JSONL record:
 {
   "timestamp": "2026-06-06T10:00:00-04:00",
   "source": "local_test",
-  "workspace": "cuticlub",
+  "workspace": "default",
   "raw_text": "广告日报 今天",
   "normalized_command": "ad_daily_today",
   "executor": "script",
@@ -233,7 +233,7 @@ POST /local/message
 Content-Type: application/json
 
 {
-  "workspace": "cuticlub",
+  "workspace": "default",
   "sender": "local-user",
   "text": "订单日报 今天 store=all"
 }
@@ -279,9 +279,9 @@ This phase requires DingTalk app credentials and a public HTTPS callback URL or 
 - `POST /local/message` with `暂停广告` is rejected.
 - Audit log receives one line per command.
 
-### CutiClub-specific checks
+### Workspace-specific checks
 
-- Reconciliation command can call existing scripts in `/root/cuticlubads`.
+- Reconciliation command can call existing scripts in `/workspace`.
 - Store reporting can read both Shopline and Shoplazza MCP/API data sources.
 - Generated reports stay outside tokens/PII.
 - No Meta, Shopline, or Shoplazza write tools are called from DingTalk-triggered tasks.

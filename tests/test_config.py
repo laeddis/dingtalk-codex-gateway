@@ -18,6 +18,7 @@ class ConfigTest(unittest.TestCase):
             "DINGTALK_GATEWAY_API_TOKEN": "secret",
             "DINGTALK_GATEWAY_ENV": "production",
             "DINGTALK_GATEWAY_WORKSPACES_CONFIG": "/tmp/workspaces.json",
+            "DINGTALK_GATEWAY_DEFAULT_WORKSPACE": "default",
         }
         with patch.dict("os.environ", env, clear=True):
             settings = load_app_settings()
@@ -26,14 +27,15 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(settings.api_token, "secret")
         self.assertEqual(settings.environment, "production")
         self.assertEqual(settings.workspaces_config, Path("/tmp/workspaces.json"))
+        self.assertEqual(settings.default_workspace, "default")
 
     def test_non_loopback_requires_auth(self):
-        settings = AppSettings("0.0.0.0", 8787, "", False, "production", Path("config/workspaces.json"))
+        settings = AppSettings("0.0.0.0", 8787, "", False, "production", Path("config/workspaces.json"), "default")
         with self.assertRaises(RuntimeError):
             validate_server_settings(settings)
 
     def test_require_auth_requires_token(self):
-        settings = AppSettings("127.0.0.1", 8787, "", True, "production", Path("config/workspaces.json"))
+        settings = AppSettings("127.0.0.1", 8787, "", True, "production", Path("config/workspaces.json"), "default")
         with self.assertRaises(RuntimeError):
             validate_server_settings(settings)
 
