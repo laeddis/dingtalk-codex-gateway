@@ -46,7 +46,7 @@ python3 -m pip install .
 dingtalk-codex-gateway --env-file /etc/dingtalk-codex-gateway.env
 ```
 
-完整服务器部署见 `docs/deployment.md`。
+完整服务器部署见 `docs/deployment.md`。推荐服务器使用 Docker Compose：`cp deploy/docker-compose.env.example deploy/docker-compose.env && docker compose --env-file deploy/docker-compose.env up -d`。
 
 ## 本地测试
 

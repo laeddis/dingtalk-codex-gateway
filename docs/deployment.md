@@ -14,6 +14,62 @@ This gateway is safe-by-default for server use: it binds to `127.0.0.1` unless c
 | `DINGTALK_GATEWAY_WORKSPACES_CONFIG` | `config/workspaces.json` | Workspace config path. |
 | `CODEX_CONFIG` | `/root/.codex/config.toml` | Existing MCP credential source. |
 
+
+## Docker Compose Deployment (Recommended)
+
+Use Compose when deploying this gateway as a long-running server process. The service stays bound to `127.0.0.1` on the host by default; put Nginx/Caddy in front if you need public HTTPS.
+
+```bash
+cd /root/dingtalk-codex-gateway
+cp deploy/docker-compose.env.example deploy/docker-compose.env
+chmod 600 deploy/docker-compose.env
+editor deploy/docker-compose.env
+
+docker compose --env-file deploy/docker-compose.env build
+docker compose --env-file deploy/docker-compose.env up -d
+docker compose --env-file deploy/docker-compose.env ps
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8787/health
+```
+
+Authenticated command test:
+
+```bash
+set -a
+. deploy/docker-compose.env
+set +a
+
+curl -X POST http://127.0.0.1:${DINGTALK_GATEWAY_PUBLISHED_PORT:-8787}/local/message \
+  -H "Authorization: Bearer $DINGTALK_GATEWAY_API_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"workspace":"cuticlub","sender":"compose-test","text":"广告状态"}'
+```
+
+Logs and lifecycle:
+
+```bash
+docker compose --env-file deploy/docker-compose.env logs -f gateway
+docker compose --env-file deploy/docker-compose.env restart gateway
+docker compose --env-file deploy/docker-compose.env down
+```
+
+Compose mounts these host paths by default:
+
+| Host path | Container path | Purpose |
+| --- | --- | --- |
+| `./config` | `/app/config` | Workspace config. |
+| `./logs` | `/app/logs` | Audit JSONL logs. |
+| `./reports` | `/app/reports` | Generated Markdown reports. |
+| `/root/cuticlubads` | `/root/cuticlubads` | CutiClub workspace. |
+| `/root/.codex` | `/root/.codex` | Existing MCP credentials. |
+| `/root/.config/meta-ads-mcp` | `/root/.config/meta-ads-mcp` | Meta token fallback. |
+
+Change these paths in `deploy/docker-compose.env` if the server uses different locations.
+
 ## Systemd Deployment
 
 ```bash
@@ -53,8 +109,16 @@ Docker is useful when the host paths are mounted into the container. The CutiClu
 ```bash
 docker build -t dingtalk-codex-gateway:latest .
 docker run --rm -p 127.0.0.1:8787:8787 \
-  --env-file deploy/dingtalk-codex-gateway.env.example \
+  -e DINGTALK_GATEWAY_ENV=production \
+  -e DINGTALK_GATEWAY_HOST=0.0.0.0 \
+  -e DINGTALK_GATEWAY_PORT=8787 \
+  -e DINGTALK_GATEWAY_REQUIRE_AUTH=1 \
   -e DINGTALK_GATEWAY_API_TOKEN='replace-with-long-token' \
+  -e DINGTALK_GATEWAY_WORKSPACES_CONFIG=/app/config/workspaces.json \
+  -e CODEX_CONFIG=/root/.codex/config.toml \
+  -v ./config:/app/config:ro \
+  -v ./logs:/app/logs \
+  -v ./reports:/app/reports \
   -v /root/cuticlubads:/root/cuticlubads:rw \
   -v /root/.codex:/root/.codex:ro \
   -v /root/.config/meta-ads-mcp:/root/.config/meta-ads-mcp:ro \
